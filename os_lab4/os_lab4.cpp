@@ -1,92 +1,79 @@
 ﻿#include <iostream>
-#include <windows.h>
 #include <vector>
-#include <chrono>
 #include <thread>
+#include <windows.h>
 
 using namespace std;
 
-const int N = 5; // Количество буферов в пуле
-vector<int> bufferPool(N);
-vector<int> dataVector; // Вектор для хранения данных
+const int N = 10; // Количество буферов
 
-CRITICAL_SECTION criticalSection; // Критическая секция
+vector<int> buffer(N); // Буферный пул
+int readIndex = 0; // Индекс буфера для чтения
+int writeIndex = 0; // Индекс буфера для записи
+
+CRITICAL_SECTION cs; // Критическая секция
+int numFreeBuffers = N; // Количество свободных буферов
+int numUsedBuffers = 0; // Количество заполненных буферов
 
 bool isBufferFull() {
-    for (int i = 0; i < N; ++i) {
-        if (bufferPool[i] == 0) {
-            return false;
-        }
-    }
-    return true;
+    return numFreeBuffers == 0;
 }
 
 bool isBufferEmpty() {
-    for (int i = 0; i < N; ++i) {
-        if (bufferPool[i] != 0) {
-            return false;
-        }
-    }
-    return true;
+    return numUsedBuffers == 0;
 }
 
 void writer() {
-    int data = 1;
-    while (true) {
+    int count = 0;
+    while (count <= 50) {
+        EnterCriticalSection(&cs);
         while (isBufferFull()) {
-            // Ждем, пока появится хотя бы один свободный буфер
-            this_thread::sleep_for(chrono::milliseconds(10));
+            LeaveCriticalSection(&cs);
+            Sleep(100);
+            EnterCriticalSection(&cs);
         }
-
-        EnterCriticalSection(&criticalSection); // Вход в критическую секцию
-
-        // Ищем свободный буфер и пишем данные
-        for (int i = 0; i < N; ++i) {
-            if (bufferPool[i] == 0) {
-                bufferPool[i] = data++;
-                cout << "Данные записаны." << endl;
-                break;
-            }
-        }
-
-        LeaveCriticalSection(&criticalSection); // Выход из критической секции
+        int value = rand() % 100;
+        buffer[writeIndex] = value;
+        cout << "Записано значение " << value << " в буфер " << writeIndex << std::endl;
+        writeIndex = (writeIndex + 1) % N;
+        numFreeBuffers--;
+        numUsedBuffers++;
+        LeaveCriticalSection(&cs);
+        Sleep(rand() % 1000);
+        count += 1;
     }
 }
 
 void reader() {
-    while (true) {
+    int count = 0;
+    while (count <= 50) {
+        EnterCriticalSection(&cs);
         while (isBufferEmpty()) {
-            // Ждем, пока появится хотя бы одна запись в буфере
-            this_thread::sleep_for(chrono::milliseconds(10));
+            LeaveCriticalSection(&cs);
+            Sleep(100);
+            EnterCriticalSection(&cs);
         }
-
-        EnterCriticalSection(&criticalSection); // Вход в критическую секцию
-        
-        // Считываем данные из буферов
-        for (int i = 0; i < N; ++i) {
-            if (bufferPool[i] != 0) {
-                int data = bufferPool[i];
-                bufferPool[i] = 0;
-                dataVector.push_back(data); // Добавляем данные в вектор
-                cout << "Данные прочитаны: " << data << endl;
-                this_thread::sleep_for(chrono::seconds(1)); // Предполагаем, что чтение занимает некоторое время
-            }
-        }
-
-        LeaveCriticalSection(&criticalSection); // Выход из критической секции
+        int value = buffer[readIndex];
+        cout << "Прочитано значение " << value << " из буфера " << readIndex << std::endl;
+        readIndex = (readIndex + 1) % N;
+        numFreeBuffers++;
+        numUsedBuffers--;
+        LeaveCriticalSection(&cs);
+        Sleep(rand() % 1000);
+        count += 1;
     }
 }
 
 int main() {
-    InitializeCriticalSection(&criticalSection); // Инициализация критической секции
-    //TryEnterCriticalSection(&criticalSection);
+    InitializeCriticalSection(&cs);
+
     thread writerThread(writer);
     thread readerThread(reader);
 
     writerThread.join();
     readerThread.join();
 
-    //DeleteCriticalSection(&criticalSection); // Удаление критической секции
+    DeleteCriticalSection(&cs);
 
     return 0;
 }
