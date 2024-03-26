@@ -5,15 +5,15 @@
 
 using namespace std;
 
-const int N = 10; // Количество буферов
+const int N = 10; 
 
-vector<int> buffer(N); // Буферный пул
-int readIndex = 0; // Индекс буфера для чтения
-int writeIndex = 0; // Индекс буфера для записи
+vector<int> buffer(N); 
+int readIndex = 0; 
+int writeIndex = 0; 
 
-CRITICAL_SECTION cs; // Критическая секция
-int numFreeBuffers = N; // Количество свободных буферов
-int numUsedBuffers = 0; // Количество заполненных буферов
+CRITICAL_SECTION cs; 
+int numFreeBuffers = N; 
+int numUsedBuffers = 0; 
 
 bool isBufferFull() {
     return numFreeBuffers == 0;
@@ -73,7 +73,7 @@ int main() {
     writerThread.join();
     readerThread.join();
 
-    DeleteCriticalSection(&cs);
+    //DeleteCriticalSection(&cs);
 
     return 0;
 }
