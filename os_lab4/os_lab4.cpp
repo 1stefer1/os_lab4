@@ -34,7 +34,7 @@ void writer() {
         }
         int value = rand() % 100;
         buffer[writeIndex] = value;
-        cout << "Записано значение " << value << " в буфер " << writeIndex << std::endl;
+        cout << "Записано значение " << value << " в буфер " << writeIndex << endl;
         writeIndex = (writeIndex + 1) % N;
         numFreeBuffers--;
         numUsedBuffers++;
@@ -54,7 +54,7 @@ void reader() {
             EnterCriticalSection(&cs);
         }
         int value = buffer[readIndex];
-        cout << "Прочитано значение " << value << " из буфера " << readIndex << std::endl;
+        cout << "Прочитано значение " << value << " из буфера " << readIndex << endl;
         readIndex = (readIndex + 1) % N;
         numFreeBuffers++;
         numUsedBuffers--;
